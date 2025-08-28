@@ -1,32 +1,15 @@
-package main
+package scraper
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/chromedp"
-	// "github.com/gocolly/colly"
 )
-
-func main() {
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("Ingresa el nombre del juego: ")
-	scanner.Scan()
-	gameName := strings.TrimSpace(scanner.Text())
-	if gameName == "" {
-		fmt.Println("No se ingresó el nombre del juego")
-		return
-	}
-	if err := searchGame(gameName); err != nil {
-		log.Fatal(err)
-	}
-}
 
 func searchGame(gameName string) error {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
