@@ -13,6 +13,12 @@ go run main.go
 
 ## TODO
 
-- Basic HTTP server to integrate the scraper with other projects.
-- More detailed scraping.
 - idk maybe deeply understanding the code after properly learning Go.
+
+### Scraper
+
+- More detailed scraping
+- Return game url and id
+
+### API
+
