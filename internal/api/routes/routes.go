@@ -25,6 +25,8 @@ func Setup() http.Handler {
 		response.Write([]byte("Index route."))
 	})
 
+	r.Mount("/api/v1/scraper", ScraperRoutes())
+
 	fmt.Println("Listening to port 3333.")
 	http.ListenAndServe(":3333", r)
 
