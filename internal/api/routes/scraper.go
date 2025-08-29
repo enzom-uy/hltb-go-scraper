@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/enzom-uy/hltb-go-scraper/internal/api/handlers"
 	"github.com/enzom-uy/hltb-go-scraper/internal/api/routes/helpers"
 	"github.com/go-chi/chi/v5"
 )
@@ -22,8 +23,13 @@ func ScraperRoutes() http.Handler {
 			return
 		}
 
-		fmt.Println("Params: ", gameName)
-		helpers.SendJSON(w, "hola")
+		result, err := handlers.QueryGame(gameName)
+
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+
+		helpers.SendJSONSuccess(w, result)
 	})
 
 	return r
