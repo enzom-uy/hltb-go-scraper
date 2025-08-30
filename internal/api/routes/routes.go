@@ -31,7 +31,7 @@ func Setup() http.Handler {
 
 	r.Use(custom_middlewares.CORSWithWhitelist())
 	r.Use(middleware.Logger)
-	r.Use(httprate.Limit(10, 10*time.Minute, httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint)))
+	r.Use(httprate.Limit(10, 1*time.Minute, httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint)))
 
 	// Routes
 	r.Get("/", func(response http.ResponseWriter, r *http.Request) {
