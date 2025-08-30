@@ -42,7 +42,7 @@ func QueryGame(gameName string) (*QueryGameResponse, error) {
 
 	var finalURL string
 
-	fmt.Printf("Intentando obtener los datos de %v en HowLongToBeat.", gameName)
+	fmt.Printf("Trying to scrap %v data from HowLongToBeat.", gameName)
 	err := chromedp.Run(ctx,
 		chromedp.Navigate("https://howlongtobeat.com/"),
 		chromedp.WaitVisible(`input[type="search"]`),
@@ -72,7 +72,7 @@ func QueryGame(gameName string) (*QueryGameResponse, error) {
 		return &QueryGameResponse{}, errors.New("(Cromedp) There was an error when trying to get scrapped website HTML.")
 	}
 
-	fmt.Printf("HTML obtenido, tamaño: %d caracteres\n", len(htmlContent))
+	fmt.Printf("HTML retrieved: %d characters.\n", len(htmlContent))
 
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlContent))
 	if err != nil {
@@ -93,11 +93,11 @@ func QueryGame(gameName string) (*QueryGameResponse, error) {
 	mainExtraLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(1).Text())
 	completionistLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(2).Text())
 
-	fmt.Println("✅ Página procesada correctamente")
-	fmt.Println("Título del juego: ", gameTitle)
-	fmt.Println("Duración de la historia principal: ", mainStoryLength)
-	fmt.Println("Duración de la historia principal + extras: ", mainExtraLength)
-	fmt.Println("Duración para completarlo al 100%: ", completionistLength)
+	fmt.Println("✅ Website scrapped successfully.")
+	fmt.Println("Game title: ", gameTitle)
+	fmt.Println("Main story duration: ", mainStoryLength)
+	fmt.Println("Main story + extras duration: ", mainExtraLength)
+	fmt.Println("Completionist duration: ", completionistLength)
 
 	return &QueryGameResponse{
 		GameTitle: gameTitle,
