@@ -14,6 +14,8 @@ go run main.go
 ## TODO
 
 - idk maybe deeply understanding the code after properly learning Go.
+- Tests
+- Adapt everything to accept other people's projects
 
 ### Scraper
 
