@@ -18,16 +18,17 @@ type QueryGameResponse struct {
 	GameDurations models.GameDurations
 }
 
-type ErrorResponse struct {
-	Message string
-}
-
-type FuncResponse struct {
-	SuccessResponse *QueryGameResponse
-	ErrorResponse   *ErrorResponse
-}
-
 func QueryGame(gameName string) (*QueryGameResponse, error) {
+
+	if gameName == "" {
+		fmt.Println("Game name is empty.")
+		return nil, errors.New("Game name is empty.")
+	}
+	if len(gameName) > 50 {
+		fmt.Println("Game name is too long (max 50 characters).")
+		return nil, errors.New("Game name is too long (max 50 characters).")
+	}
+
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		// chromedp.Flag("disable-gpu", true),
 		chromedp.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"),

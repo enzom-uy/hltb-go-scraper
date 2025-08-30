@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"fmt"
+	// "fmt"
 	"net/http"
 
 	"github.com/enzom-uy/hltb-go-scraper/internal/api/handlers"
@@ -16,17 +16,11 @@ func ScraperRoutes() http.Handler {
 
 		gameName := r.URL.Query().Get("game_name")
 
-		if gameName == "" {
-			const errorMessage string = "No valid query received. Query param is \"game_name\""
-			http.Error(w, errorMessage, 400)
-			fmt.Println(errorMessage)
-			return
-		}
-
 		result, err := handlers.QueryGame(gameName)
 
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			http.Error(w, err.Error(), 400)
+			return
 		}
 
 		helpers.SendJSONSuccess(w, result)
