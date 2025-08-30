@@ -19,6 +19,8 @@ type QueryGameResponse struct {
 }
 
 func QueryGame(gameName string) (*QueryGameResponse, error) {
+	gameName = strings.TrimSpace(gameName)
+	gameName = strings.Trim(gameName, `"'`)
 
 	if gameName == "" {
 		fmt.Println("Game name is empty.")

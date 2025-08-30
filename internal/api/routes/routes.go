@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	custom_middlewares "github.com/enzom-uy/hltb-go-scraper/internal/custom-middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -28,6 +29,7 @@ func Setup() http.Handler {
 	r.Use(middleware.SetHeader("X-Frame-Options", "DENY"))
 	r.Use(middleware.SetHeader("X-XSS-Protection", "1; mode=block"))
 
+	r.Use(custom_middlewares.CORSWithWhitelist())
 	r.Use(middleware.Logger)
 	r.Use(httprate.Limit(10, 10*time.Minute, httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint)))
 
