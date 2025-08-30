@@ -12,6 +12,7 @@ func CORSWithWhitelist() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
 			fmt.Println("Origin: ", origin)
+			fmt.Println("Origin from env: ", os.Getenv("PROD_DOMAIN"))
 
 			allowedOrigins := getAllowedOrigins()
 
@@ -38,7 +39,7 @@ func CORSWithWhitelist() func(http.Handler) http.Handler {
 
 func getAllowedOrigins() []string {
 	allowed := []string{
-		"http://localhost:3333",
+		os.Getenv("ALLOWED_DOMAIN"),
 	}
 
 	if prodDomain := os.Getenv("PROD_DOMAIN"); prodDomain != "" {

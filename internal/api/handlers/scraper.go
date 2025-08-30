@@ -18,7 +18,14 @@ type QueryGameResponse struct {
 	GameDurations models.GameDurations
 }
 
-func QueryGame(gameName string) (*QueryGameResponse, error) {
+func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error) {
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	gameName = strings.TrimSpace(gameName)
 	gameName = strings.Trim(gameName, `"'`)
 
@@ -32,24 +39,32 @@ func QueryGame(gameName string) (*QueryGameResponse, error) {
 	}
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		// chromedp.Flag("disable-gpu", true),
 		chromedp.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"),
 	)
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 
-	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	allocCtx, cancel := chromedp.NewExecAllocator(ctx, opts...)
 	defer cancel()
 
-	ctx, cancel = context.WithTimeout(ctx, 60*time.Second)
+	chromedpCtx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	defer cancel()
+
+	chromedpCtx, cancel = context.WithTimeout(chromedpCtx, 60*time.Second)
 	defer cancel()
 
 	var finalURL string
 
 	fmt.Printf("Trying to scrap %v data from HowLongToBeat.", gameName)
-	err := chromedp.Run(ctx,
+
+	select {
+	case <-ctx.Done():
+		log.Println("Request cancelled before navigation")
+		return nil, ctx.Err()
+	default:
+	}
+
+	err := chromedp.Run(chromedpCtx,
 		chromedp.Navigate("https://howlongtobeat.com/"),
 		chromedp.WaitVisible(`input[type="search"]`),
-		// chromedp.Sleep(1*time.Second),
 		chromedp.SendKeys(`input[type="search"]`, gameName),
 		chromedp.KeyEvent("\r"),
 		chromedp.Sleep(3*time.Second),
@@ -60,22 +75,43 @@ func QueryGame(gameName string) (*QueryGameResponse, error) {
 	fmt.Println("Error?: ", err)
 
 	if err != nil {
-		return &QueryGameResponse{}, errors.New("(Chromedp) THere was an error when trying to navigate and scrape the data.")
+		if ctx.Err() == context.Canceled {
+			log.Println("Navigation cancelled by client")
+			return nil, ctx.Err()
+		}
+		return &QueryGameResponse{}, errors.New("(Chromedp) There was an error when trying to navigate and scrape the data.")
 	}
 
 	fmt.Println("Final URL: ", finalURL)
 
+	select {
+	case <-ctx.Done():
+		log.Println("Request cancelled before getting HTML")
+		return nil, ctx.Err()
+	default:
+	}
+
 	var htmlContent string
-	err = chromedp.Run(ctx,
-		// chromedp.Sleep(2*time.Second),
+	err = chromedp.Run(chromedpCtx,
 		chromedp.InnerHTML("body", &htmlContent),
 	)
 
 	if err != nil {
-		return &QueryGameResponse{}, errors.New("(Cromedp) There was an error when trying to get scrapped website HTML.")
+		if ctx.Err() == context.Canceled {
+			log.Println("HTML retrieval cancelled by client")
+			return nil, ctx.Err()
+		}
+		return &QueryGameResponse{}, errors.New("(Chromedp) There was an error when trying to get scrapped website HTML.")
 	}
 
 	fmt.Printf("HTML retrieved: %d characters.\n", len(htmlContent))
+
+	select {
+	case <-ctx.Done():
+		log.Println("Request cancelled before parsing HTML")
+		return nil, ctx.Err()
+	default:
+	}
 
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlContent))
 	if err != nil {
@@ -84,7 +120,6 @@ func QueryGame(gameName string) (*QueryGameResponse, error) {
 
 	firstGame := doc.Find("#search-results-header ul li").First()
 	if firstGame.Length() == 0 {
-
 		firstGame = doc.Find("li.GameCard_search_list__IuMbi").First()
 		if firstGame.Length() == 0 {
 			return &QueryGameResponse{}, errors.New("No game found.")
