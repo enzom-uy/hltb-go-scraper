@@ -24,3 +24,6 @@ go run main.go
 
 ### API
 
+- Use API Key approach instead of Origin header.
+    - Use DB to store API Key to allow other people to use it. 
+- Allow users to report problems with the scraper.
