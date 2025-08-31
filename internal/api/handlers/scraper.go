@@ -16,6 +16,8 @@ import (
 type QueryGameResponse struct {
 	GameTitle     string
 	GameDurations models.GameDurations
+	GameID        string
+	GameURL       string
 }
 
 func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error) {
@@ -131,11 +133,16 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	mainExtraLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(1).Text())
 	completionistLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(2).Text())
 
+	gameUrl := strings.TrimSpace(firstGame.Find("h2 a").AttrOr("href", ""))
+	splitUrl := strings.Split(gameUrl, "/")
+	gameID := splitUrl[len(splitUrl)-1]
+
 	fmt.Println("✅ Website scrapped successfully.")
 	fmt.Println("Game title: ", gameTitle)
 	fmt.Println("Main story duration: ", mainStoryLength)
 	fmt.Println("Main story + extras duration: ", mainExtraLength)
 	fmt.Println("Completionist duration: ", completionistLength)
+	fmt.Println("Game URL: ", "https://howlongtobeat.com"+gameUrl)
 
 	return &QueryGameResponse{
 		GameTitle: gameTitle,
@@ -144,5 +151,7 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 			MainsSides:    mainExtraLength,
 			Completionist: completionistLength,
 		},
+		GameID:  gameID,
+		GameURL: "https://howlongtobeat.com" + gameUrl,
 	}, nil
 }

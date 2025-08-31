@@ -22,7 +22,6 @@ func Setup() http.Handler {
 
 	// Security stuff
 	r.Use(cors.Handler(cors.Options{
-		// AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -34,7 +33,6 @@ func Setup() http.Handler {
 	r.Use(middleware.SetHeader("X-Frame-Options", "DENY"))
 	r.Use(middleware.SetHeader("X-XSS-Protection", "1; mode=block"))
 
-	r.Use(custom_middlewares.CORSWithWhitelist())
 	r.Use(middleware.Logger)
 	r.Use(httprate.Limit(10, 1*time.Minute, httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint)))
 
