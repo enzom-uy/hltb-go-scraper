@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/enzom-uy/hltb-go-scraper/internal"
 	custom_middlewares "github.com/enzom-uy/hltb-go-scraper/internal/custom-middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -13,11 +14,15 @@ import (
 )
 
 func Setup() http.Handler {
+
+	cfg := internal.LoadConfig()
+	authMiddleware := custom_middlewares.NewAuthMiddleware(cfg)
+
 	r := chi.NewRouter()
 
 	// Security stuff
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		// AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -33,12 +38,13 @@ func Setup() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(httprate.Limit(10, 1*time.Minute, httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint)))
 
-	// Routes
-	r.Get("/", func(response http.ResponseWriter, r *http.Request) {
-		response.Write([]byte("Index route."))
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(authMiddleware.APIKeyAuth)
+		r.Get("/", func(response http.ResponseWriter, r *http.Request) {
+			response.Write([]byte("Index route."))
+		})
+		r.Mount("/scraper", ScraperRoutes())
 	})
-
-	r.Mount("/api/v1/scraper", ScraperRoutes())
 
 	fmt.Println("Listening to port 3333.")
 	http.ListenAndServe(":3333", r)
