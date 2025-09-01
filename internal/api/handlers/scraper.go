@@ -42,6 +42,9 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"),
+		chromedp.ExecPath("/usr/bin/chromium-browser"), //
+		chromedp.NoSandbox,  //
+		chromedp.DisableGPU, //
 	)
 
 	allocCtx, cancel := chromedp.NewExecAllocator(ctx, opts...)
