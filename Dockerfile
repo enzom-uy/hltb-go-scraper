@@ -1,6 +1,15 @@
+FROM golang:1.24-alpine AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+# Cambiar 'main' por 'server' para coincidir con Railway
+RUN go build -o server ./cmd/server
+
 FROM alpine:latest
 
-# Install Chrome and dependencies
 RUN apk add --no-cache \
     chromium \
     nss \
@@ -9,16 +18,19 @@ RUN apk add --no-cache \
     ca-certificates \
     ttf-freefont
 
-# Configure Chrome for container execution
 ENV CHROME_BIN=/usr/bin/chromium-browser \
     CHROME_PATH=/usr/bin/chromium-browser
 
-# Create non-root user for security
 RUN addgroup -g 1001 -S golang && \
     adduser -S golang -u 1001
+
+# Cambiar 'main' por 'server'
+COPY --from=builder /app/server /app/server
+RUN chown golang:golang /app/server
 
 USER golang
 EXPOSE 3333
 
-# Railway will handle the build and start commands
-# No CMD needed - Railway uses your custom start command
+# Cambiar el comando para ejecutar 'server'
+CMD ["/app/server"]
+
