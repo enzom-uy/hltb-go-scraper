@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 # Cambiar la ruta del build para apuntar a cmd/
-RUN go build -o main ./cmd
+RUN go build -o main ./cmd/server
 
 # Final image with Chrome
 FROM alpine:latest
