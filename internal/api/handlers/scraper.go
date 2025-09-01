@@ -72,7 +72,7 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 		chromedp.WaitVisible(`input[type="search"]`),
 		chromedp.SendKeys(`input[type="search"]`, gameName),
 		chromedp.KeyEvent("\r"),
-		chromedp.Sleep(3*time.Second),
+		chromedp.Sleep(5*time.Second),
 		chromedp.WaitVisible(`#search-results-header`, chromedp.ByQuery),
 		chromedp.Location(&finalURL),
 	)
@@ -124,6 +124,7 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	}
 
 	firstGame := doc.Find("#search-results-header ul li").First()
+	fmt.Println("First game: ", firstGame.Text())
 	if firstGame.Length() == 0 {
 		firstGame = doc.Find("li.GameCard_search_list__IuMbi").First()
 		if firstGame.Length() == 0 {
