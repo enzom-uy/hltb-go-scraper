@@ -69,7 +69,7 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 		chromedp.WaitVisible(`input[type="search"]`),
 		chromedp.SendKeys(`input[type="search"]`, gameName),
 		chromedp.KeyEvent("\r"),
-		chromedp.Sleep(5*time.Second),
+		chromedp.Sleep(2*time.Second),
 		chromedp.WaitVisible(`#search-results-header`, chromedp.ByQuery),
 		chromedp.Location(&finalURL),
 	)
