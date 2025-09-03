@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,27 @@ type QueryGameResponse struct {
 	GameDurations models.GameDurations
 	GameID        string
 	GameURL       string
+}
+
+type ParsedGameResponse struct {
+	duration float64
+}
+
+func parseHoursStringToInt(string string) (*ParsedGameResponse, error) {
+	parsedString := strings.ReplaceAll(string, "½", ".5")
+	parsedString = strings.ReplaceAll(parsedString, " Hours", "")
+	toNumber, err := strconv.ParseFloat(parsedString, 64)
+
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return &ParsedGameResponse{}, err
+	}
+
+	fmt.Println("nuevo main text: ", toNumber)
+	return &ParsedGameResponse{
+		duration: toNumber,
+	}, nil
+
 }
 
 func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error) {
@@ -130,9 +152,13 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	}
 
 	gameTitle := strings.TrimSpace(firstGame.Find("h2 a").Text())
-	mainStoryLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").First().Text())
-	mainExtraLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(1).Text())
-	completionistLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(2).Text())
+	mainStoryLength, parseError := parseHoursStringToInt(strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").First().Text()))
+	mainExtraLength, parseError := parseHoursStringToInt(strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(1).Text()))
+	completionistLength, parseError := parseHoursStringToInt(strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(2).Text()))
+
+	if parseError != nil {
+		return &QueryGameResponse{}, errors.New("(parse) Error when trying to parse the durations.")
+	}
 
 	gameUrl := strings.TrimSpace(firstGame.Find("h2 a").AttrOr("href", ""))
 	splitUrl := strings.Split(gameUrl, "/")
@@ -140,17 +166,17 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 
 	fmt.Println("✅ Website scrapped successfully.")
 	fmt.Println("Game title: ", gameTitle)
-	fmt.Println("Main story duration: ", mainStoryLength)
-	fmt.Println("Main story + extras duration: ", mainExtraLength)
-	fmt.Println("Completionist duration: ", completionistLength)
+	fmt.Println("Main story duration: ", mainStoryLength.duration)
+	fmt.Println("Main story + extras duration: ", mainExtraLength.duration)
+	fmt.Println("Completionist duration: ", completionistLength.duration)
 	fmt.Println("Game URL: ", "https://howlongtobeat.com"+gameUrl)
 
 	return &QueryGameResponse{
 		GameTitle: gameTitle,
 		GameDurations: models.GameDurations{
-			MainStory:     mainStoryLength,
-			MainsSides:    mainExtraLength,
-			Completionist: completionistLength,
+			MainStory:     mainStoryLength.duration,
+			MainsSides:    mainExtraLength.duration,
+			Completionist: completionistLength.duration,
 		},
 		GameID:  gameID,
 		GameURL: "https://howlongtobeat.com" + gameUrl,

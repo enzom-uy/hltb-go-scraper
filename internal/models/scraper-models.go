@@ -1,9 +1,9 @@
 package models
 
 type GameDurations struct {
-	MainStory     string `json:"main_story"`
-	MainsSides    string `json:"main_sides"`
-	Completionist string `json:"completionist"`
+	MainStory     float64 `json:"main_story"`
+	MainsSides    float64 `json:"main_sides"`
+	Completionist float64 `json:"completionist"`
 }
 
 type ScraperSuccessPayload struct {
