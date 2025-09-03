@@ -11,6 +11,8 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/chromedp"
+	"github.com/enzom-uy/hltb-go-scraper/internal/db"
+	"github.com/enzom-uy/hltb-go-scraper/internal/model"
 	"github.com/enzom-uy/hltb-go-scraper/internal/models"
 )
 
@@ -48,6 +50,21 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
+	}
+
+	db, _, dbErr := db.Init()
+	if dbErr != nil {
+		fmt.Println("Error al conectar a la base de datos: ", dbErr)
+		return nil, dbErr
+	}
+
+	exists := db.Where("title LIKE ?", "%"+gameName+"%").First(&model.Game{}).RowsAffected > 0
+	fmt.Println("Existe el juego ya?: ", exists)
+
+	if exists {
+		fmt.Println("%v exists in database.", gameName)
+		// TODO: don't return error, just return the game.
+		return nil, errors.New("Game already exists in database.")
 	}
 
 	gameName = strings.TrimSpace(gameName)
@@ -163,6 +180,12 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	gameUrl := strings.TrimSpace(firstGame.Find("h2 a").AttrOr("href", ""))
 	splitUrl := strings.Split(gameUrl, "/")
 	gameID := splitUrl[len(splitUrl)-1]
+	gameIDInt, strConvErr := strconv.ParseInt(gameID, 10, 64)
+
+	if strConvErr != nil {
+		fmt.Println("Error converting game ID to int64: ", strConvErr)
+		return &QueryGameResponse{}, strConvErr
+	}
 
 	fmt.Println("✅ Website scrapped successfully.")
 	fmt.Println("Game title: ", gameTitle)
@@ -170,6 +193,17 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	fmt.Println("Main story + extras duration: ", mainExtraLength.duration)
 	fmt.Println("Completionist duration: ", completionistLength.duration)
 	fmt.Println("Game URL: ", "https://howlongtobeat.com"+gameUrl)
+
+	fmt.Println("Trying to save data to database.")
+	// TODO: handle errors
+	newGame := model.HowlongtobeatDatum{
+		HltbID:              gameIDInt,
+		MainStoryHours:      mainStoryLength.duration,
+		MainStorySidesHours: mainExtraLength.duration,
+		CompletionistHours:  completionistLength.duration,
+	}
+
+	db.Create(&newGame)
 
 	return &QueryGameResponse{
 		GameTitle: gameTitle,
