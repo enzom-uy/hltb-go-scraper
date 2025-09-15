@@ -18,6 +18,17 @@ func ScraperRoutes() http.Handler {
 		start := time.Now()
 		ctx := r.Context()
 		gameName := r.URL.Query().Get("game_name")
+		gameId := r.URL.Query().Get("game_id")
+
+		if gameName == "" {
+			http.Error(w, "Game name is empty.", 400)
+			return
+		}
+
+		if gameId == "" {
+			http.Error(w, "Game ID is empty.", 400)
+			return
+		}
 
 		defer func() {
 			if ctx.Err() == context.Canceled {
@@ -27,7 +38,7 @@ func ScraperRoutes() http.Handler {
 			}
 		}()
 
-		result, err := handlers.QueryGame(ctx, gameName)
+		result, err := handlers.QueryGame(ctx, gameName, gameId)
 
 		if err != nil {
 			if ctx.Err() == context.Canceled {

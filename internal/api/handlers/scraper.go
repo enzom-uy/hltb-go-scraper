@@ -14,6 +14,7 @@ import (
 	"github.com/enzom-uy/hltb-go-scraper/internal/db"
 	"github.com/enzom-uy/hltb-go-scraper/internal/model"
 	"github.com/enzom-uy/hltb-go-scraper/internal/models"
+	"github.com/google/uuid"
 )
 
 type QueryGameResponse struct {
@@ -44,7 +45,7 @@ func parseHoursStringToInt(string string) (*ParsedGameResponse, error) {
 
 }
 
-func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error) {
+func QueryGame(ctx context.Context, gameName string, gameId string) (*QueryGameResponse, error) {
 
 	select {
 	case <-ctx.Done():
@@ -56,27 +57,6 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	if dbErr != nil {
 		fmt.Println("Error al conectar a la base de datos: ", dbErr)
 		return nil, dbErr
-	}
-
-	exists := db.Where("title LIKE ?", "%"+gameName+"%").First(&model.Game{}).RowsAffected > 0
-	fmt.Println("Existe el juego ya?: ", exists)
-
-	if exists {
-		fmt.Println("%v exists in database.", gameName)
-		// TODO: don't return error, just return the game.
-		return nil, errors.New("Game already exists in database.")
-	}
-
-	gameName = strings.TrimSpace(gameName)
-	gameName = strings.Trim(gameName, `"'`)
-
-	if gameName == "" {
-		fmt.Println("Game name is empty.")
-		return nil, errors.New("Game name is empty.")
-	}
-	if len(gameName) > 50 {
-		fmt.Println("Game name is too long (max 50 characters).")
-		return nil, errors.New("Game name is too long (max 50 characters).")
 	}
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
@@ -179,8 +159,8 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 
 	gameUrl := strings.TrimSpace(firstGame.Find("h2 a").AttrOr("href", ""))
 	splitUrl := strings.Split(gameUrl, "/")
-	gameID := splitUrl[len(splitUrl)-1]
-	gameIDInt, strConvErr := strconv.ParseInt(gameID, 10, 64)
+	gameHltbId := splitUrl[len(splitUrl)-1]
+	gameIDInt, strConvErr := strconv.ParseInt(gameHltbId, 10, 64)
 
 	if strConvErr != nil {
 		fmt.Println("Error converting game ID to int64: ", strConvErr)
@@ -197,6 +177,8 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	fmt.Println("Trying to save data to database.")
 	// TODO: handle errors
 	newGame := model.HowlongtobeatDatum{
+		ID:                  uuid.NewString(),
+		GameID:              gameId,
 		HltbID:              gameIDInt,
 		MainStoryHours:      mainStoryLength.duration,
 		MainStorySidesHours: mainExtraLength.duration,
@@ -212,7 +194,7 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 			MainsSides:    mainExtraLength.duration,
 			Completionist: completionistLength.duration,
 		},
-		GameID:  gameID,
+		GameID:  gameHltbId,
 		GameURL: "https://howlongtobeat.com" + gameUrl,
 	}, nil
 }

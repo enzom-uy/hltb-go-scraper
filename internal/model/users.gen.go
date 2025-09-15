@@ -21,6 +21,9 @@ type User struct {
 	Bio               string    `gorm:"column:bio" json:"bio"`
 	CreatedAt         time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
 	UpdatedAt         time.Time `gorm:"column:updated_at" json:"updated_at"`
+	EmailVerified     bool      `gorm:"column:email_verified;not null" json:"email_verified"`
+	Role              string    `gorm:"column:role;not null" json:"role"`
+	DisplayUsername   string    `gorm:"column:display_username;not null" json:"display_username"`
 }
 
 // TableName User's table name

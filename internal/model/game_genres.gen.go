@@ -8,9 +8,9 @@ const TableNameGameGenre = "game_genres"
 
 // GameGenre mapped from table <game_genres>
 type GameGenre struct {
-	ID        string `gorm:"column:id;primaryKey" json:"id"`
-	GameID    string `gorm:"column:game_id;not null" json:"game_id"`
-	GenreName string `gorm:"column:genre_name;not null" json:"genre_name"`
+	ID      string `gorm:"column:id;primaryKey" json:"id"`
+	GameID  string `gorm:"column:game_id;not null" json:"game_id"`
+	GenreID string `gorm:"column:genre_id;not null" json:"genre_id"`
 }
 
 // TableName GameGenre's table name

@@ -19,9 +19,10 @@ type Game struct {
 	CoverURL    string    `gorm:"column:cover_url" json:"cover_url"`
 	Developer   string    `gorm:"column:developer" json:"developer"`
 	Publisher   string    `gorm:"column:publisher" json:"publisher"`
-	IgdbID      int64     `gorm:"column:igdb_id" json:"igdb_id"`
+	IgdbID      int64     `gorm:"column:igdb_id;not null" json:"igdb_id"`
 	CreatedAt   time.Time `gorm:"column:created_at;default:now()" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
+	Slug        string    `gorm:"column:slug;not null" json:"slug"`
 }
 
 // TableName Game's table name
