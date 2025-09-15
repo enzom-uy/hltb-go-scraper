@@ -5,12 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/chromedp"
+	"github.com/enzom-uy/hltb-go-scraper/internal/db"
+	"github.com/enzom-uy/hltb-go-scraper/internal/model"
 	"github.com/enzom-uy/hltb-go-scraper/internal/models"
+	"github.com/google/uuid"
 )
 
 type QueryGameResponse struct {
@@ -20,7 +24,28 @@ type QueryGameResponse struct {
 	GameURL       string
 }
 
-func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error) {
+type ParsedGameResponse struct {
+	duration float64
+}
+
+func parseHoursStringToInt(string string) (*ParsedGameResponse, error) {
+	parsedString := strings.ReplaceAll(string, "½", ".5")
+	parsedString = strings.ReplaceAll(parsedString, " Hours", "")
+	toNumber, err := strconv.ParseFloat(parsedString, 64)
+
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return &ParsedGameResponse{}, err
+	}
+
+	fmt.Println("nuevo main text: ", toNumber)
+	return &ParsedGameResponse{
+		duration: toNumber,
+	}, nil
+
+}
+
+func QueryGame(ctx context.Context, gameName string, gameId string) (*QueryGameResponse, error) {
 
 	select {
 	case <-ctx.Done():
@@ -28,16 +53,10 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	default:
 	}
 
-	gameName = strings.TrimSpace(gameName)
-	gameName = strings.Trim(gameName, `"'`)
-
-	if gameName == "" {
-		fmt.Println("Game name is empty.")
-		return nil, errors.New("Game name is empty.")
-	}
-	if len(gameName) > 50 {
-		fmt.Println("Game name is too long (max 50 characters).")
-		return nil, errors.New("Game name is too long (max 50 characters).")
+	db, _, dbErr := db.Init()
+	if dbErr != nil {
+		fmt.Println("Error al conectar a la base de datos: ", dbErr)
+		return nil, dbErr
 	}
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
@@ -133,29 +152,52 @@ func QueryGame(ctx context.Context, gameName string) (*QueryGameResponse, error)
 	}
 
 	gameTitle := strings.TrimSpace(firstGame.Find("h2 a").Text())
-	mainStoryLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").First().Text())
-	mainExtraLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(1).Text())
-	completionistLength := strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(2).Text())
+	mainStoryLength, parseError := parseHoursStringToInt(strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").First().Text()))
+	mainExtraLength, parseError := parseHoursStringToInt(strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(1).Text()))
+	completionistLength, parseError := parseHoursStringToInt(strings.TrimSpace(firstGame.Find(".GameCard_search_list_details_block__XEXkr .GameCard_search_list_tidbit__0r_OP.center.time_100").Eq(2).Text()))
+
+	if parseError != nil {
+		return &QueryGameResponse{}, errors.New("(parse) Error when trying to parse the durations.")
+	}
 
 	gameUrl := strings.TrimSpace(firstGame.Find("h2 a").AttrOr("href", ""))
 	splitUrl := strings.Split(gameUrl, "/")
-	gameID := splitUrl[len(splitUrl)-1]
+	gameHltbId := splitUrl[len(splitUrl)-1]
+	gameIDInt, strConvErr := strconv.ParseInt(gameHltbId, 10, 64)
+
+	if strConvErr != nil {
+		fmt.Println("Error converting game ID to int64: ", strConvErr)
+		return &QueryGameResponse{}, strConvErr
+	}
 
 	fmt.Println("✅ Website scrapped successfully.")
 	fmt.Println("Game title: ", gameTitle)
-	fmt.Println("Main story duration: ", mainStoryLength)
-	fmt.Println("Main story + extras duration: ", mainExtraLength)
-	fmt.Println("Completionist duration: ", completionistLength)
+	fmt.Println("Main story duration: ", mainStoryLength.duration)
+	fmt.Println("Main story + extras duration: ", mainExtraLength.duration)
+	fmt.Println("Completionist duration: ", completionistLength.duration)
 	fmt.Println("Game URL: ", "https://howlongtobeat.com"+gameUrl)
+
+	fmt.Println("Trying to save data to database.")
+	// TODO: handle errors
+	newGame := model.HowlongtobeatDatum{
+		ID:                  uuid.NewString(),
+		GameID:              gameId,
+		HltbID:              gameIDInt,
+		MainStoryHours:      mainStoryLength.duration,
+		MainStorySidesHours: mainExtraLength.duration,
+		CompletionistHours:  completionistLength.duration,
+	}
+
+	db.Create(&newGame)
 
 	return &QueryGameResponse{
 		GameTitle: gameTitle,
 		GameDurations: models.GameDurations{
-			MainStory:     mainStoryLength,
-			MainsSides:    mainExtraLength,
-			Completionist: completionistLength,
+			MainStory:     mainStoryLength.duration,
+			MainsSides:    mainExtraLength.duration,
+			Completionist: completionistLength.duration,
 		},
-		GameID:  gameID,
+		GameID:  gameHltbId,
 		GameURL: "https://howlongtobeat.com" + gameUrl,
 	}, nil
 }
